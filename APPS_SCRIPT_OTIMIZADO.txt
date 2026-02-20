@@ -146,7 +146,7 @@ function doPost(e) {
               <p style="font-size: 16px; line-height: 1.6;">${msgPersonalizada}</p>
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
               <p>Acesse o portal para mais detalhes:</p>
-              <a href="${ScriptApp.getService().getUrl()}" style="background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Acessar Portal</a>
+              <a href="https://sistema-incentivo-educacao-v2.vercel.app/#" style="background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Acessar Portal</a>
               <br><br>
               <p style="font-size: 12px; color: #999;">Atenciosamente,<br><b>Equipe de Recursos Humanos</b></p>
             </div>
@@ -283,7 +283,7 @@ function setStatus(matricula, novoStatus, motivo = "") {
           </div>
           <p>${novoStatus === "Aprovado" ? "Parabéns! Sua solicitação foi aprovada. Acesse o portal para baixar seu contrato PDF." : "Infelizmente sua solicitação não foi aprovada desta vez. Acesse o portal para mais detalhes ou entre em contato com o RH."}</p>
           <br>
-          <a href="${ScriptApp.getService().getUrl()}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar Portal</a>
+          <a href="https://sistema-incentivo-educacao-v2.vercel.app/#" style="display: inline-block; background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar Portal</a>
           <br><br>
           <hr style="border: none; border-top: 1px solid #eee;">
           <small style="color: #888;">Este é um e-mail automático enviado pelo Sistema de Incentivo à Educação.</small>
@@ -447,7 +447,7 @@ function enviarLembretesRenovacao() {
                 <p>Identificamos que sua última declaração de matrícula foi enviada há exatamente <b>3 meses</b>.</p>
                 <p>Para manter seu benefício de incentivo à educação, é necessário enviar uma declaração atualizada.</p>
                 <p>Acesse o portal agora para realizar o novo envio:</p>
-                <a href="${ScriptApp.getService().getUrl()}" style="background: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Acessar Portal</a>
+                <a href="https://sistema-incentivo-educacao-v2.vercel.app/#" style="background: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Acessar Portal</a>
                 <br><br>
                 <small>Caso já tenha enviado recentemente, desconsidere este e-mail.</small>
               </div>

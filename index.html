@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incentivo a Educação (ETEC)</title>
+
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Excel Reading (SheetJS) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="style.css?v=3.1">
+    <script src="storage.js"></script>
+    <style>
+        /* CRITICAL OVERRIDES - FORÇA APLICAÇÃO IMEDIATA */
+        .card {
+            padding: 2rem !important;
+            /* Corrige títulos para fora */
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+        }
+
+        .card h2 {
+            margin-bottom: 2rem !important;
+            padding-bottom: 1rem !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+            font-size: 1.25rem;
+            color: #f8fafc;
+        }
+
+        /* Tabela Premium Styles */
+        table {
+            border-collapse: separate !important;
+            border-spacing: 0 0.5rem !important;
+            width: 100%;
+        }
+
+        thead th {
+            padding: 0 1rem 1rem 1rem !important;
+            color: #94a3b8 !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            font-size: 0.75rem !important;
+            border-bottom: none !important;
+            text-align: left !important;
+        }
+
+        tbody tr {
+            background: rgba(255, 255, 255, 0.03) !important;
+            transition: transform 0.2s !important;
+        }
+
+        tbody tr:hover {
+            transform: translateX(5px);
+            background: rgba(255, 255, 255, 0.07) !important;
+        }
+
+        td {
+            padding: 1rem !important;
+            border: none !important;
+            vertical-align: middle !important;
+        }
+
+        td:first-child {
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        td:last-child {
+            border-top-right-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        /* Botões */
+        .btn-icon-detail {
+            width: 34px !important;
+            height: 34px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 8px !important;
+            color: #cbd5e1 !important;
+            margin-right: 5px !important;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-icon-detail:hover {
+            background: var(--primary, #6366f1) !important;
+            color: white !important;
+            border-color: var(--primary, #6366f1) !important;
+            transform: scale(1.1);
+        }
+
+        /* Status View Styles */
+        .status-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .status-icon-container {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2.5rem;
+        }
+
+        .status-pendente .status-icon-container {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 2px solid var(--warning);
+        }
+
+        .status-aprovado .status-icon-container {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 2px solid var(--success);
+        }
+
+        .status-rejeitado .status-icon-container {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+            border: 2px solid var(--error);
+        }
+
+        .status-badge-lg {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        .status-pendente .status-badge-lg {
+            background: var(--warning);
+            color: white;
+        }
+
+        .status-aprovado .status-badge-lg {
+            background: var(--success);
+            color: white;
+        }
+
+        .status-rejeitado .status-badge-lg {
+            background: var(--error);
+            color: white;
+        }
+
+        /* Central de Notificações */
+        .notification-bell {
+            position: relative;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--error);
+            color: white;
+            font-size: 10px;
+            padding: 2px 5px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .notification-center {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+            display: none;
+        }
+
+        .notification-center.active {
+            display: block;
+        }
+
+        .notif-item {
+            display: flex;
+            gap: 1rem;
+            padding: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .not_last {
+            border-bottom: none;
+        }
+
+        .notif-icon {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        /* Contador de Dias */
+        .countdown-container {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(16, 185, 129, 0.1));
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .days-count {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--success);
+        }
+
+        .view-section {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        #view-login,
+        #view-admin-login {
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #view-login.active,
+        #view-admin-login.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .background-blobs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.4;
+            border-radius: 50%;
+            animation: move 20s infinite alternate;
+        }
+
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            top: -100px;
+            left: -100px;
+        }
+
+        .blob-2 {
+            width: 300px;
+            height: 300px;
+            background: var(--secondary);
+            bottom: -50px;
+            right: -50px;
+            animation-delay: -5s;
+        }
+
+        @keyframes move {
+            from {
+                transform: translate(0, 0) scale(1);
+            }
+
+            to {
+                transform: translate(100px, 100px) scale(1.1);
+            }
+        }
+
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .user-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 1px solid var(--glass-border);
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .icon-blue {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .icon-pink {
+            background: rgba(236, 72, 153, 0.1);
+            color: var(--secondary);
+        }
+
+        .icon-green {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-dim);
+            font-weight: 500;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        td {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .confirm-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .confirm-box h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .data-label {
+            color: var(--text-dim);
+        }
+
+        .success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-gradient);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .success-icon {
+            font-size: 5rem;
+            color: var(--success);
+            margin-bottom: 2rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .loading-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #FFF;
+            border-bottom-color: var(--primary);
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <!-- Loader -->
+    <!-- Loader (Agora oculto por padrão, ativado apenas em ações demoradas) -->
+    <div id="loading" class="loading-overlay">
+        <span class="loader"></span>
+        <p class="mt-4 text-dim">Processando...</p>
+    </div>
+
+    <!-- SEÇÃO: LOGIN COLABORADOR -->
+    <section id="view-login" class="view-section active">
+        <div class="glass" style="max-width: 450px; padding: 3rem 2rem; text-align: center; width: 100%;">
+            <img src="DADOS/LOGO.png" alt="Cocal" style="max-width: 180px; margin-bottom: 2rem;">
+            <h1 class="logo mb-2" style="font-size: 2rem;">Incentivo a Educação (ETEC)</h1>
+            <p class="text-dim mb-10">Programa de Qualificação Profissional</p>
+
+            <div id="login-error" class="text-error mb-4 bg-glass-light p-3 rounded-lg"
+                style="display: none; font-size: 0.85rem;"></div>
+
+            <form id="login-form">
+                <div class="mb-6" style="text-align: left;">
+                    <label class="text-dim text-sm block mb-2">Digite sua Matrícula</label>
+                    <input type="text" id="user-matricula" placeholder="Ex: 12345" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Acessar</button>
+            </form>
+
+            <div class="mt-8">
+                <a href="#" onclick="showSection('view-admin-login')"
+                    class="text-dim no-underline text-sm opacity-50">Painel Gestão</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO: ACOMPANHAMENTO DE STATUS -->
+    <section id="view-status" class="view-section">
+        <div class="glass" style="max-width: 550px; padding: 3rem 2rem; margin: 0 auto; width: 100%;">
+            <div class="status-header flex justify-between items-center mb-8">
+                <img src="DADOS/LOGO.png" alt="Cocal" style="max-height: 40px;">
+                <div class="notification-bell"
+                    onclick="document.getElementById('notif-center').classList.toggle('active')">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notif-count">1</span>
+                </div>
+            </div>
+
+            <div id="notif-center" class="notification-center">
+                <h3 class="text-sm font-bold mb-4 opacity-80"><i class="fas fa-info-circle mr-2"></i> Notificações</h3>
+                <div id="notif-list">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <div class="text-center mb-8">
+                <h1 class="text-2xl mb-2">Olá, <span id="status-user-name">Colaborador</span></h1>
+                <p class="text-dim">Aqui está o status da sua solicitação</p>
+            </div>
+
+            <div id="status-container" class="status-card">
+                <!-- Preenchido via JS -->
+                <div class="status-icon-container">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="status-badge-lg">Pendente</div>
+                <h2 class="mb-4">Sua solicitação está em análise</h2>
+                <p class="text-dim text-sm">O RH está revisando seus documentos. Em breve você receberá um retorno.</p>
+            </div>
+
+            <div class="mt-8 pt-6 border-t border-glass text-center">
+                <button onclick="window.location.reload()" class="btn btn-secondary w-full">Sair do Sistema</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO: FORMULÁRIO EM 3 ETAPAS (STEPPER) -->
+    <section id="view-form" class="view-section">
+        <div class="form-container">
+            <div class="header" style="justify-content: center; flex-direction: column; text-align: center; gap: 1rem;">
+                <img src="DADOS/LOGO.png" alt="Cocal" style="max-height: 60px;">
+                <h1 class="logo text-2xl">Incentivo a Educação (ETEC)</h1>
+
+                <div class="user-info" style="margin-top: 1rem;">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="display-user">Colaborador</span>
+                </div>
+            </div>
+
+            <!-- Visualizador de Etapas -->
+            <div class="step-container">
+                <div class="step-line">
+                    <div class="step-line-progress" id="step-progress"></div>
+                </div>
+                <div class="step-item active" id="step-1-indicator">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Dados</div>
+                </div>
+                <div class="step-item" id="step-2-indicator">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Curso</div>
+                </div>
+                <div class="step-item" id="step-3-indicator">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Finalizar</div>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <form id="submission-form">
+
+                    <!-- ETAPA 1: VALIDAÇÃO -->
+                    <div class="form-step active" id="step-1">
+                        <h2 class="mb-6" style="font-size: 1.5rem; font-weight: 600;"><i
+                                class="fas fa-id-card text-primary"></i> Confirme seus Dados</h2>
+
+                        <div class="confirm-box">
+                            <div class="data-row"><span class="data-label">Nome:</span> <b id="conf-nome">-</b></div>
+                            <div class="data-row"><span class="data-label">Cargo:</span> <b id="conf-cargo">-</b></div>
+                            <div class="data-row"><span class="data-label">Descrição Local:</span> <b
+                                    id="conf-local">-</b></div>
+                            <div class="data-row"><span class="data-label">Diretoria:</span> <b
+                                    id="conf-diretoria">-</b></div>
+                            <div class="data-row"><span class="data-label">Unidade:</span> <b id="conf-unidade">-</b>
+                            </div>
+                            <div class="data-row"><span class="data-label">Tempo de Empresa:</span> <b
+                                    id="conf-tempo">-</b></div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2 opacity-80">WhatsApp / Telefone</label>
+                            <input type="tel" id="user-phone" placeholder="(00) 00000-0000"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all font-mono">
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium mb-2 opacity-80">E-mail para Contato</label>
+                            <input type="email" id="user-email" placeholder="exemplo@empresa.com.br"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-indigo-500 transition-all">
+                        </div>
+
+                        <div class="btn-group" style="justify-content: flex-end;">
+                            <button type="button" onclick="showSection('view-login')"
+                                class="btn btn-secondary text-dim">Sair</button>
+                            <button type="button" onclick="nextStep(2)" class="btn btn-primary">Próximo <i
+                                    class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ETAPA 2: CURSO -->
+                    <div class="form-step" id="step-2">
+                        <h2 class="mb-6" style="font-size: 1.5rem; font-weight: 600;"><i
+                                class="fas fa-graduation-cap text-primary"></i> Dados do Curso</h2>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" class="mb-6">
+                            <div style="grid-column: 1 / -1;">
+                                <label class="text-sm text-dim mb-2 block">Nome do Curso Técnico <span
+                                        class="text-error">*</span></label>
+                                <select id="course-select" onchange="toggleOtherCourse()" required
+                                    style="margin-bottom: 0.5rem;">
+                                    <option value="" disabled selected>Selecione seu curso...</option>
+
+                                    <optgroup label="Administração e Negócios">
+                                        <option value="Administração">Administração</option>
+                                        <option value="Agronegócio">Agronegócio</option>
+                                        <option value="Comércio">Comércio</option>
+                                        <option value="Comércio Exterior">Comércio Exterior</option>
+                                        <option value="Contabilidade">Contabilidade</option>
+                                        <option value="Eventos">Eventos</option>
+                                        <option value="Finanças">Finanças</option>
+                                        <option value="Logística">Logística</option>
+                                        <option value="Marketing">Marketing</option>
+                                        <option value="Recursos Humanos">Recursos Humanos</option>
+                                        <option value="Secretariado">Secretariado</option>
+                                    </optgroup>
+
+                                    <optgroup label="Controle e Processos Industriais">
+                                        <option value="Automação Industrial">Automação Industrial</option>
+                                        <option value="Automação Predial">Automação Predial</option>
+                                        <option value="Mecânica">Mecânica</option>
+                                        <option value="Mecatrônica">Mecatrônica</option>
+                                        <option value="Qualidade">Qualidade</option>
+                                        <option value="Química">Química</option>
+                                    </optgroup>
+
+                                    <optgroup label="Gestão e Negócios">
+                                        <option value="Gestão Ambiental">Gestão Ambiental</option>
+                                        <option value="Gestão de Energia">Gestão de Energia</option>
+                                        <option value="Gestão de Projetos (EaD)">Gestão de Projetos (EaD)</option>
+                                        <option value="Gestão de Unidades de Alimentação e Nutrição">Gestão de
+                                            Unidades
+                                            de Alimentação e Nutrição</option>
+                                    </optgroup>
+
+                                    <optgroup label="Informática e Tecnologia">
+                                        <option value="Desenvolvimento de Sistemas">Desenvolvimento de Sistemas
+                                        </option>
+                                        <option value="Informática">Informática</option>
+                                        <option value="Informática para Internet">Informática para Internet</option>
+                                        <option value="Manutenção e Suporte em Informática">Manutenção e Suporte em
+                                            Informática</option>
+                                        <option value="Redes de Computadores">Redes de Computadores</option>
+                                        <option value="Ciência de Dados">Ciência de Dados</option>
+                                    </optgroup>
+
+                                    <optgroup label="Saúde">
+                                        <option value="Enfermagem">Enfermagem</option>
+                                        <option value="Farmácia">Farmácia</option>
+                                        <option value="Nutrição e Dietética">Nutrição e Dietética</option>
+                                        <option value="Saúde Bucal">Saúde Bucal</option>
+                                        <option value="Cuidados de Idosos">Cuidados de Idosos</option>
+                                        <option value="Enfermagem do Trabalho">Enfermagem do Trabalho</option>
+                                    </optgroup>
+
+                                    <optgroup label="Construção Civil">
+                                        <option value="Edificações">Edificações</option>
+                                        <option value="Desenho de Construção Civil">Desenho de Construção Civil
+                                        </option>
+                                        <option value="Segurança do Trabalho na Construção Civil">Segurança do
+                                            Trabalho
+                                            na Construção Civil</option>
+                                    </optgroup>
+
+                                    <optgroup label="Meio Ambiente">
+                                        <option value="Meio Ambiente">Meio Ambiente</option>
+                                        <option value="Agroecologia">Agroecologia</option>
+                                        <option value="Saneamento">Saneamento</option>
+                                    </optgroup>
+
+                                    <optgroup label="Turismo e Hospitalidade">
+                                        <option value="Hospedagem">Hospedagem</option>
+                                        <option value="Guia de Turismo">Guia de Turismo</option>
+                                        <option value="Gastronomia">Gastronomia</option>
+                                        <option value="Serviços de Restaurante e Bar">Serviços de Restaurante e Bar
+                                        </option>
+                                    </optgroup>
+
+                                    <optgroup label="Artes e Design">
+                                        <option value="Design Gráfico">Design Gráfico</option>
+                                        <option value="Design de Interiores">Design de Interiores</option>
+                                        <option value="Multimídia">Multimídia</option>
+                                        <option value="Processos Fotográficos">Processos Fotográficos</option>
+                                    </optgroup>
+
+                                    <optgroup label="Outros Populares">
+                                        <option value="Eletrotécnica">Eletrotécnica</option>
+                                        <option value="Eletrônica">Eletrônica</option>
+                                        <option value="Eletroeletrônica">Eletroeletrônica</option>
+                                        <option value="Segurança do Trabalho">Segurança do Trabalho</option>
+                                    </optgroup>
+
+                                    <option value="Outros">Outros</option>
+                                </select>
+                                <input type="text" id="course-name-other" placeholder="Digite o nome do curso..."
+                                    style="display: none;">
+                            </div>
+                            <div>
+                                <label class="text-sm text-dim mb-2 block">Data Início <span
+                                        class="text-error">*</span></label>
+                                <input type="date" id="course-start" required>
+                            </div>
+                            <div>
+                                <label class="text-sm text-dim mb-2 block">Data Término <span
+                                        class="text-error">*</span></label>
+                                <input type="date" id="course-end" required>
+                            </div>
+                        </div>
+
+                        <h3 class="text-dim text-sm mb-4">
+                            <i class="fas fa-paperclip"></i> Declaração de Matrícula (PDF ou Foto)
+                            <span class="model-trigger">
+                                (MODELO)
+                                <img src="DADOS/MODELO_DECLARACAO.jpg" alt="Modelo de Declaração" class="model-preview">
+                            </span>
+                        </h3>
+                        <div class="mb-8">
+                            <div class="upload-area" id="drop-area"
+                                style="border: 2px dashed var(--glass-border); padding: 2rem; border-radius: 16px; text-align: center; cursor: pointer; transition: 0.3s;">
+                                <i class="fas fa-cloud-upload-alt text-3xl text-primary mb-3"></i>
+                                <p class="text-dim text-sm">Clique aqui para anexar o arquivo</p>
+                                <input type="file" id="course-files" style="display: none;" accept="image/*,.pdf">
+                            </div>
+                            <div id="file-list" class="mt-4"></div>
+                        </div>
+
+                        <div class="btn-group" style="justify-content: space-between;">
+                            <button type="button" onclick="prevStep(1)" class="btn btn-secondary text-dim"><i
+                                    class="fas fa-arrow-left"></i> Voltar</button>
+                            <button type="button" onclick="nextStep(3)" class="btn btn-primary">Próximo <i
+                                    class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- ETAPA 3: REGRAS -->
+                    <div class="form-step" id="step-3">
+                        <h2 class="mb-6" style="font-size: 1.5rem; font-weight: 600;"><i
+                                class="fas fa-book-reader text-primary"></i> Regulamento do Programa</h2>
+
+                        <div class="info-section">
+                            <h3><i class="fas fa-bullseye"></i> Objetivo</h3>
+                            <p class="text-dim text-sm mb-4">Se você deseja se qualificar com um curso técnico em
+                                uma
+                                (ETEC) das cidades das regiões onde atuamos, a Cocal pode te apoiar e facilitar esse
+                                caminho.</p>
+
+                            <h3><i class="fas fa-check-circle"></i> Quem pode participar?</h3>
+                            <ul class="info-list">
+                                <li><i class="fas fa-check"></i> Ter pelo menos 3 meses de empresa;</li>
+                                <li><i class="fas fa-check"></i> Estar matriculado em curso técnico alinhado ao
+                                    negócio;
+                                </li>
+                                <li><i class="fas fa-check"></i> Instituição pública (ETEC);</li>
+                            </ul>
+
+                            <h3><i class="fas fa-gift"></i> Benefícios</h3>
+                            <ul class="info-list">
+                                <li><i class="fas fa-star"></i> Reembolso da inscrição no vestibulinho (R$ 40,00);
+                                </li>
+                                <li><i class="fas fa-star"></i> Auxílio mensal de R$ 150,00 após aprovação.</li>
+                            </ul>
+
+                            <div class="contact-box mt-6">
+                                <p class="text-sm"><b>Dúvidas?</b> Fale com o RH – Desenvolvimento Humano</p>
+                                <p class="text-sm text-dim"><i class="fab fa-whatsapp"></i> (18) 99661-6542</p>
+                                <div class="deadline-badge">Aguarde que vamos retornar em breve</div>
+                            </div>
+                        </div>
+
+                        <div class="btn-group" style="justify-content: space-between;">
+                            <button type="button" onclick="prevStep(2)" class="btn btn-secondary text-dim"><i
+                                    class="fas fa-arrow-left"></i> Voltar</button>
+                            <button type="submit" class="btn btn-primary"
+                                style="background: var(--success); width: auto; padding-left: 2rem; padding-right: 2rem;">
+                                <i class="fas fa-check"></i> Concordo e Enviar
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO: LOGIN ADMIN -->
+    <section id="view-admin-login" class="view-section">
+        <div class="glass" style="max-width: 400px; padding: 3rem 2rem; text-align: center; width: 100%;">
+            <h1 class="logo text-2xl mb-4">Gestão</h1>
+            <p class="text-dim mb-10">Acesso Administrativo</p>
+            <form id="admin-login-form">
+                <input type="text" id="admin-user" placeholder="Usuário" required class="mb-4">
+                <input type="password" id="admin-pass" placeholder="Senha" required class="mb-6">
+                <button type="submit" class="btn btn-primary w-full">Entrar</button>
+            </form>
+            <div id="admin-login-error" class="text-error mt-4 text-sm" style="display: none;">Credenciais incorretas
+            </div>
+            <div class="mt-8"><a href="#" onclick="showSection('view-login')"
+                    class="text-dim no-underline text-sm">Voltar</a></div>
+        </div>
+    </section>
+
+    <!-- SEÇÃO: DASHBOARD ADMIN -->
+    <section id="view-admin-dashboard" class="view-section">
+        <div class="header">
+            <h1 class="logo text-2xl">Gestão <span class="text-sm font-normal text-dim ml-2">Incentivo a Educação
+                    (ETEC)</span></h1>
+            <button onclick="showSection('view-login')" class="btn bg-glass-light">Sair</button>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-card glass">
+                <div class="stat-icon icon-blue"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>Inscritos</h3>
+                    <p id="dash-total">0</p>
+                </div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-icon icon-pink"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <h3>Pendentes</h3>
+                    <p id="dash-pending">0</p>
+                </div>
+            </div>
+            <div class="stat-card glass">
+                <div class="stat-icon icon-green"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Aprovados</h3>
+                    <p id="dash-approved">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="dashboard-content">
+            <div class="card glass">
+                <h2 class="mb-4">Lista de Solicitações</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Colaborador</th>
+                            <th>Curso</th>
+                            <th>Data</th>
+                            <th>90 Dias</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dash-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- MODAL DE DETALHES DA SOLICITAÇÃO -->
+    <div id="modal-details" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 style="font-size: 1.25rem; font-weight: 600;">Detalhes da Solicitação</h2>
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+            </div>
+            <div id="modal-body" class="detail-grid">
+                <!-- Conteúdo preenchido via JS -->
+            </div>
+            <div id="modal-footer" class="mt-8 pt-4 border-t border-glass">
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay de Sucesso -->
+    <div id="success-overlay" class="success-overlay">
+        <i class="fas fa-check-circle success-icon"></i>
+        <h2>Sucesso!</h2>
+        <p class="text-dim mt-4">Sua inscrição foi enviada para análise.</p>
+        <button onclick="window.location.reload()" class="btn btn-primary mt-8 px-10">Fechar</button>
+    </div>
+
+    <script>
+        // Script iniciado com sucesso
+        console.log("Aplicação Iniciada [v2.1 Turbo]");
+
+        // -- INTEGRAÇÃO COM EXCEL (SELECT.xlsx) --
+
+        // -- INTEGRAÇÃO COM EXCEL (OTIMIZADA V3) --
+        let excelData = [];
+        let currentStep = 1;
+
+        const GOOGLE_API_URL = "https://script.google.com/macros/s/AKfycbyx4YRRWMMlJwEWf6MRwi--ZuTbLSa7nKrFac01Lo06djWDju8bB8lfHpSicRRRUDoUqA/exec";
+
+        // --- NOVA FUNÇÃO DE BUSCA ---
+        async function fetchColaborador(matricula) {
+            const loader = document.getElementById('loading');
+            const errorBox = document.getElementById('login-error');
+
+            errorBox.style.display = 'none';
+            errorBox.innerText = "";
+            loader.classList.add('active');
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+                const url = `${GOOGLE_API_URL}?matricula=${encodeURIComponent(matricula)}&no-cache=${Date.now()}`;
+                console.log("Conectando:", url);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    redirect: 'follow',
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) throw new Error("Erro HTTP " + response.status);
+
+                const result = await response.json();
+
+                if (result.error) throw new Error(result.error);
+                if (!result || Object.keys(result).length === 0) return null;
+
+                return result;
+
+            } catch (error) {
+                console.error("Erro Fetch:", error);
+                let msg = "Erro desconhecido ao conectar.";
+
+                if (error.name === 'AbortError') msg = "A conexão demorou muito (Timeout).";
+                else if (error.message) msg = error.message;
+
+                errorBox.innerHTML = `⚠️ <b>Erro de Conexão</b><br>${msg}<br><button type='button' class='btn btn-sm btn-secondary mt-2' onclick='location.reload()'>Recarregar</button>`;
+                errorBox.style.display = 'block';
+                return null;
+            } finally {
+                loader.classList.remove('active');
+            }
+        }
+
+        function toBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        // Função auxiliar robusta para achar colunas
+        function findVal(obj, variations) {
+            if (!obj) return null;
+            const keys = Object.keys(obj);
+            const normalize = (str) => String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[\s\-_]+/g, "").trim();
+
+            for (let v of variations) {
+                const target = normalize(v);
+                for (let k of keys) {
+                    const key = normalize(k);
+                    if (key === target) return obj[k];
+                    if (key.includes(target) && target.length > 3) return obj[k];
+                }
+            }
+            return null;
+        }
+
+        // Helper para converter "dd/mm/yyyy" em objeto Date
+        function parseBRDate(str) {
+            if (!str || typeof str !== 'string' || !str.includes('/')) return new Date(str);
+            const parts = str.split(' ')[0].split('/');
+            if (parts.length !== 3) return new Date(str);
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+
+        // REMOVIDO initExcel no start.
+
+
+
+        // -- NAVEGAÇÃO --
+        function showSection(id) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        // -- TOGGLE CURSO OUTROS --
+        function toggleOtherCourse() {
+            const select = document.getElementById('course-select');
+            const otherInput = document.getElementById('course-name-other');
+            if (select.value === 'Outros') {
+                otherInput.style.display = 'block';
+                otherInput.focus();
+                otherInput.required = true;
+            } else {
+                otherInput.style.display = 'none';
+                otherInput.required = false;
+            }
+        }
+
+        // -- LÓGICA LOGIN OTIMIZADA --
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const matriculaInput = document.getElementById('user-matricula').value.trim();
+            if (!matriculaInput) return;
+
+            // Busca os dados na nuvem SOMENTE agora
+            const colab = await fetchColaborador(matriculaInput);
+
+            // Verifica se a busca retornou null (não encontrado ou erro) ou se o objeto está vazio
+            if (!colab) {
+                const errorBox = document.getElementById('login-error');
+                if (errorBox.innerHTML === "") errorBox.innerText = "Matrícula não encontrada.";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            // Mapeamento
+            const nome = findVal(colab, ['colaborador', 'nome', 'nome completo']);
+            const cargo = findVal(colab, ['descrição cargo', 'descricao cargo', 'descrição do cargo', 'cargo']);
+            const local = findVal(colab, ['descrição local', 'descricao local', 'descrição do local', 'setor']);
+            const diretoria = findVal(colab, ['diretoria', 'diretoria regional']);
+            const unidade = findVal(colab, ['unidade', 'filial', 'local']);
+
+            const dataAdmissaoRaw = findVal(colab, ['admissao', 'admissão', 'data admissao', 'dt_adm']);
+            let tempoMeses = 0;
+
+            if (dataAdmissaoRaw) {
+                let dataAdm;
+                if (typeof dataAdmissaoRaw === 'number') {
+                    dataAdm = new Date(Math.round((dataAdmissaoRaw - 25569) * 86400 * 1000));
+                } else {
+                    const partes = String(dataAdmissaoRaw).split('/');
+                    if (partes.length === 3) {
+                        dataAdm = new Date(partes[2], partes[1] - 1, partes[0]);
+                    } else {
+                        dataAdm = new Date(dataAdmissaoRaw);
+                    }
+                }
+
+                if (dataAdm && !isNaN(dataAdm.getTime())) {
+                    const hoje = new Date();
+                    const diffTime = Math.abs(hoje - dataAdm);
+                    tempoMeses = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30.44));
+                }
+            }
+
+            if (tempoMeses < 3) {
+                const errorBox = document.getElementById('login-error');
+                errorBox.innerHTML = `⚠️ <b>Ops! Requisito não atingido</b><br>Você possui <b>${tempoMeses} meses</b> de empresa. O programa requer o mínimo de <b>3 meses</b> para participação.`;
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            // Verifica se achou os dados críticos
+            if (!cargo || !local) {
+                console.warn("Dados incompletos:", colab);
+                // Opcional: Avisar o usuário ou deixar passar
+            }
+
+            localStorage.setItem('currentUser', JSON.stringify(colab));
+            document.getElementById('display-user').innerText = nome || 'Colaborador';
+
+            document.getElementById('conf-nome').innerText = nome || '-';
+            document.getElementById('conf-cargo').innerText = cargo || '-';
+            document.getElementById('conf-local').innerText = local || '-';
+            document.getElementById('conf-diretoria').innerText = diretoria || '-';
+            document.getElementById('conf-unidade').innerText = unidade || '-';
+            document.getElementById('conf-tempo').innerText = `${tempoMeses} meses`;
+
+            document.getElementById('user-phone').value = '';
+            document.getElementById('user-email').value = ''; // Clear email field
+
+            // --- LÓGICA DE ACOMPANHAMENTO ---
+            if (colab.alreadySubmitted) {
+                showSection('view-status'); // Direciona para a tela de monitoramento
+                let status = colab.submissionStatus || "Pendente";
+                document.getElementById('status-user-name').innerText = nome.split(' ')[0];
+                const container = document.getElementById('status-container');
+
+                // Lógica de Renovação (90 dias baseada no Início do Curso)
+                const dataInicioRaw = findVal(colab, ["Data Inicio", "datainicio", "data_inicio"]);
+                let daysLeft = null;
+
+                if (dataInicioRaw) {
+                    const dataInicio = parseBRDate(dataInicioRaw);
+                    if (!isNaN(dataInicio.getTime())) {
+                        const hoje = new Date();
+                        const diffMs = hoje - dataInicio;
+                        const diffDiasTotal = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                        // Ciclo de 90 dias
+                        daysLeft = 90 - (diffDiasTotal % 90);
+                        if (diffDiasTotal < 0) daysLeft = 90;
+                    }
+                }
+
+                const precisaRenovar = daysLeft !== null && daysLeft <= 0 && status === "Aprovado";
+
+                // Gerencia Notificações
+                const notifList = document.getElementById('notif-list');
+                const notifCount = document.getElementById('notif-count');
+                let notifications = [];
+
+                if (status === "Aprovado") {
+                    if (daysLeft !== null && daysLeft <= 10) {
+                        notifications.push({ icon: 'fa-exclamation-circle', text: `Atenção: Sua renovação vence em ${daysLeft} dias!` });
+                    }
+                    notifications.push({ icon: 'fa-check-circle', text: 'Documentação do curso em dia.' });
+                } else if (status === "Pendente") {
+                    notifications.push({ icon: 'fa-clock', text: 'Sua solicitação está na fila de análise do RH.' });
+                    if (daysLeft !== null) {
+                        notifications.push({ icon: 'fa-calendar', text: `Ciclo de 90 dias: Restam ${daysLeft} dias.` });
+                    }
+                }
+
+                notifList.innerHTML = notifications.map((n, i) => `
+                    <div class="notif-item ${i === notifications.length - 1 ? 'not_last' : ''}">
+                        <i class="fas ${n.icon} notif-icon"></i>
+                        <span class="text-xs opacity-90">${n.text}</span>
+                    </div>
+                `).join('');
+                notifCount.innerText = notifications.length;
+
+                if (status === "Aprovado") {
+                    if (precisaRenovar) {
+                        status = "Necessita Renovação";
+                        title = "Declaração Expirada";
+                        icon = "fa-exclamation-triangle";
+                        desc = "Seu ciclo de 90 dias venceu. Por favor, envie uma nova declaração de matrícula.";
+                        statusClass = "status-rejeitado";
+                    } else {
+                        title = "Parabéns!";
+                        icon = "fa-check-circle";
+                        desc = "Sua solicitação foi aprovada!";
+                        statusClass = "status-aprovado";
+                    }
+                } else if (status === "Rejeitado") {
+                    icon = 'fa-times-circle';
+                    title = 'Solicitação não aprovada';
+                    const motivo = colab.motivoRejeicao ? `<div class="mt-4 p-3 bg-glass-light rounded-lg text-error" style="border: 1px solid rgba(239, 68, 68, 0.2);"><b>Motivo:</b> ${colab.motivoRejeicao}</div>` : '';
+                    desc = `Infelizmente sua solicitação não foi aprovada desta vez. ${motivo}`;
+                    statusClass = "status-rejeitado";
+                }
+
+                container.className = 'status-card ' + statusClass;
+
+                container.innerHTML = `
+                    <div class="status-icon-container"><i class="fas ${icon}"></i></div>
+                    <div class="status-badge-lg">${status}</div>
+                    <h2 class="mb-4" style="font-size: 1.5rem;">${title}</h2>
+                    <p class="text-dim text-sm mb-6">${desc}</p>
+                    
+                    ${daysLeft !== null ? `
+                        <div class="countdown-container">
+                            <i class="fas fa-calendar-alt text-primary"></i>
+                            <div class="text-left">
+                                <div class="text-[10px] uppercase opacity-60 font-bold leading-none mb-1">Ciclo de 90 dias (${status})</div>
+                                <div class="flex items-baseline gap-1">
+                                    <span class="days-count">${daysLeft}</span>
+                                    <span class="text-xs opacity-60">dias restantes</span>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    ${precisaRenovar ? `
+                        <button onclick="localStorage.removeItem('currentUser'); location.reload();" class="btn btn-primary w-full">
+                            <i class="fas fa-upload mr-2"></i> Enviar Nova Declaração
+                        </button>
+                    ` : ''}
+                `;
+
+                showSection('view-status');
+                return;
+            }
+
+            // Resetar formulário para etapa 1
+            currentStep = 1;
+            updateStepper();
+            showSection('view-form');
+        });
+
+        // -- ENVIO FORMULÁRIO PARA GOOGLE DRIVE / SHEETS --
+        // -- ENVIO FORMULÁRIO (COM CONTROLE DE ETAPAS PARA O ENTER) --
+        document.getElementById('submission-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Se apertou ENTER na etapa 1 ou 2, apenas avança
+            if (currentStep < 3) {
+                nextStep(currentStep + 1);
+                return; // PARA AQUI, não envia nada ainda.
+            }
+
+            // DAQUI PRA BAIXO SÓ EXECUTA SE FOR A ETAPA 3 (FINAL)
+            const loader = document.getElementById('loading');
+            const colab = JSON.parse(localStorage.getItem('currentUser'));
+            const fileInput = document.getElementById('course-files');
+
+            if (fileInput.files.length === 0) {
+                alert("Por favor, anexe o comprovante antes de finalizar.");
+                return;
+            }
+
+            loader.classList.add('active');
+
+            try {
+                const file = fileInput.files[0];
+                const base64File = await toBase64(file);
+
+                const payload = {
+                    matricula: String(findVal(colab, ['matricula', 'chapa']) || ""),
+                    nome: findVal(colab, ['colaborador', 'nome']) || "",
+                    cargo: findVal(colab, ['descricao_cargo', 'cargo']) || "",
+                    local: findVal(colab, ['descricao_local', 'local']) || "",
+                    diretoria: findVal(colab, ['descricao_diretoria', 'diretoria']) || "",
+                    unidade: findVal(colab, ['unidade']) || "",
+                    tempo: findVal(colab, ['tempo_empresa', 'tempo']) || "",
+                    rg: findVal(colab, ['rg']) || "",
+                    cpf: findVal(colab, ['cpf formatado', 'cpf']) || "",
+                    rua: findVal(colab, ['rua', 'endereco', 'logradouro']) || "",
+                    numero: findVal(colab, ['numero', 'nº', 'num']) || "",
+                    bairro: findVal(colab, ['bairro']) || "",
+                    cep: findVal(colab, ['cep']) || "",
+                    cidade: findVal(colab, ['cidade']) || "",
+                    uf: findVal(colab, ['uf', 'estado']) || "",
+                    telefone: document.getElementById('user-phone').value,
+                    email: document.getElementById('user-email').value,
+                    curso: document.getElementById('course-select').value === 'Outros'
+                        ? document.getElementById('course-name-other').value
+                        : document.getElementById('course-select').value,
+                    datainicio: document.getElementById('course-start').value,
+                    datafim: document.getElementById('course-end').value,
+                    fileName: file.name,
+                    file: base64File
+                };
+
+                console.log("Enviando Payload para Google:", payload);
+
+                const response = await fetch(GOOGLE_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+
+                // SUCESSO!
+                console.log("Envio OK!");
+                document.getElementById('loading').classList.remove('active'); // Garante que loader sai
+
+                // 1. SALVA LOCALMENTE (Para o Dashboard funcionar)
+                try {
+                    if (window.AppStorage) {
+                        const saved = window.AppStorage.saveSubmission({
+                            matricula: payload.matricula,
+                            nome: payload.nome,
+                            curso: payload.curso,
+                            telefone: payload.telefone
+                        });
+                        console.log("Salvo localmente:", saved);
+                    }
+                } catch (e) {
+                    console.error("Erro ao salvar localmente", e);
+                }
+
+                // 2. MOSTRA SUCESSO
+                document.getElementById('success-overlay').style.display = 'flex';
+
+            } catch (error) {
+                document.getElementById('loading').classList.remove('active');
+                console.error("Erro no envio:", error);
+                alert("Erro ao enviar! Detalhes: " + error.message);
+            }
+        });
+
+        // Upload Preview
+        const dropArea = document.getElementById('drop-area');
+        const fileInputComp = document.getElementById('course-files');
+        const fileList = document.getElementById('file-list');
+
+        if (dropArea && fileInputComp) {
+            dropArea.addEventListener('click', () => fileInputComp.click());
+            fileInputComp.addEventListener('change', () => {
+                fileList.innerHTML = '';
+                for (let file of fileInputComp.files) {
+                    const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                    fileList.innerHTML += `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;margin-top:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.4);border-radius:10px;">
+                        <i class="fas fa-check-circle" style="color:#10b981;font-size:1.2rem;"></i>
+                        <div style="flex:1;">
+                            <div style="color:#10b981;font-weight:600;font-size:0.85rem;">Arquivo carregado!</div>
+                            <div style="color:var(--text-dim);font-size:0.75rem;margin-top:2px;">${file.name} (${sizeMB} MB)</div>
+                        </div>
+                        <i class="fas fa-times" style="color:var(--text-dim);cursor:pointer;font-size:0.9rem;" onclick="document.getElementById('course-files').value='';this.closest('div').parentElement.innerHTML='';"></i>
+                    </div>`;
+                }
+                // Muda a area de drop para indicar sucesso
+                dropArea.style.borderColor = '#10b981';
+                dropArea.style.background = 'rgba(16,185,129,0.05)';
+            });
+        }
+
+        // -- ADMIN --
+        const adminForm = document.getElementById('admin-login-form');
+        if (adminForm) {
+            adminForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (document.getElementById('admin-user').value === 'gestao' && document.getElementById('admin-pass').value === 'gestao') {
+                    showSection('view-admin-dashboard');
+                    loadStats();
+                } else {
+                    document.getElementById('admin-login-error').style.display = 'block';
+                }
+            });
+        }
+
+        let currentSubmissions = []; // Armazena os dados atuais do dashboard
+
+        async function loadStats() {
+            const listTable = document.getElementById('dash-table');
+            if (listTable) listTable.innerHTML = '<tr><td colspan="4" class="text-center p-4">Carregando dados da planilha... <i class="fas fa-spinner fa-spin ml-2"></i></td></tr>';
+
+            try {
+                console.log("Iniciando busca de estatísticas...");
+                const response = await fetch(`${GOOGLE_API_URL}?type=respostas&t=${Date.now()}`);
+
+                if (!response.ok) throw new Error("Ops! O Google Scripts demorou a responder. Tente recarregar (F5).");
+
+                const subs = await response.json();
+
+                if (!Array.isArray(subs)) throw new Error("A planilha retornou um formato inválido.");
+
+                currentSubmissions = subs;
+
+                // Atualiza contadores
+                const total = subs.length;
+                const aprovados = subs.filter(s => (s["Status"] || s["status"]) === 'Aprovado').length;
+                const pendentes = total - aprovados;
+
+                if (document.getElementById('dash-total')) document.getElementById('dash-total').innerText = total;
+                if (document.getElementById('dash-pending')) document.getElementById('dash-pending').innerText = pendentes;
+                if (document.getElementById('dash-approved')) document.getElementById('dash-approved').innerText = aprovados;
+
+                if (listTable) {
+                    listTable.innerHTML = subs.length === 0
+                        ? '<tr><td colspan="4" class="text-center p-4">Nenhuma solicitação encontrada na planilha.</td></tr>'
+                        : '';
+
+                    subs.forEach((s, idx) => {
+                        const nome = findVal(s, ["Nome", "Nome Completo", "Colaborador"]) || "-";
+                        const curso = findVal(s, ["Curso", "Curso Técnico", "Nome do Curso"]) || "-";
+                        const dataRaw = findVal(s, ["Data Hora", "Data", "Cadastro"]) || s["Data Hora"] || s["datahora"] || "-";
+                        const matricula = findVal(s, ["Matrícula", "Matricula", "Chapa"]) || s["Matrícula"] || s["Matricula"] || "";
+                        const status = findVal(s, ["Status", "Situação"]) || s["Status"] || "Pendente";
+
+                        let badgeClass = 'badge-pending';
+                        if (status === 'Aprovado') badgeClass = 'badge-success';
+                        if (status === 'Rejeitado') badgeClass = 'badge-reject';
+
+                        let dataFormatada = "-";
+                        if (dataRaw && dataRaw !== "-") {
+                            const rawStr = String(dataRaw);
+                            if (rawStr.includes('/')) {
+                                dataFormatada = rawStr.split(' ')[0];
+                            } else if (rawStr.includes('T') || rawStr.includes('-')) {
+                                // ISO format from Google Sheets
+                                const d = new Date(rawStr);
+                                dataFormatada = !isNaN(d.getTime()) ? d.toLocaleDateString('pt-BR') : rawStr;
+                            } else {
+                                dataFormatada = rawStr;
+                            }
+                        }
+
+                        let actionsHtml = `
+                                    <button onclick="viewSubmissionDetails(${idx})" class="btn-icon-detail" title="Ver Detalhes">
+                                        <i class="fas fa-eye text-primary"></i>
+                                    </button>
+                                    <button onclick="sendManualNotification('${matricula}', '${nome}')" class="btn-icon-detail" title="Enviar Notificação Manual">
+                                        <i class="fas fa-comment-dots text-warning"></i>
+                                    </button>
+                        `;
+
+                        if (status !== 'Aprovado' && status !== 'Rejeitado') {
+                            actionsHtml += `
+                                    <button onclick="approveSubmission('${matricula}')" class="btn-icon-detail" title="Aprovar" style="color: var(--success); border-color: var(--success);">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button onclick="rejectSubmission('${matricula}')" class="btn-icon-detail" title="Rejeitar" style="color: var(--error); border-color: var(--error);">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                            `;
+                        } else if (status === 'Aprovado') {
+                            actionsHtml += `
+                                    <button onclick="generateContract('${matricula}', '${curso}')" class="btn-icon-detail" title="Gerar Contrato">
+                                        <i class="fas fa-file-contract text-white"></i>
+                                    </button>
+                            `;
+                        }
+
+                        // Calcula dias restantes no ciclo de 90 dias
+                        const dataInicioRaw = findVal(s, ["Data Inicio", "datainicio", "Data de Inicio"]);
+                        let diasBadge = '<span style="color:var(--text-dim);font-size:0.75rem;">-</span>';
+                        if (dataInicioRaw && dataInicioRaw !== "-") {
+                            const dInicio = new Date(dataInicioRaw);
+                            if (!isNaN(dInicio.getTime())) {
+                                const hoje = new Date();
+                                const diffMs = hoje - dInicio;
+                                const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                const diasRestantes = 90 - (diffDias % 90);
+                                let corDias = '#10b981'; // verde
+                                if (diasRestantes <= 10) corDias = '#ef4444'; // vermelho
+                                else if (diasRestantes <= 30) corDias = '#f59e0b'; // amarelo
+                                diasBadge = `<span style="font-weight:700;color:${corDias};font-size:0.9rem;">${diasRestantes}<span style="font-size:0.65rem;opacity:0.7;"> dias</span></span>`;
+                            }
+                        }
+
+                        listTable.innerHTML += `<tr>
+                            <td><b>${nome}</b></td>
+                            <td>${curso}</td>
+                            <td>${dataFormatada}</td>
+                            <td>${diasBadge}</td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <span class="status-badge ${badgeClass}">${status}</span>
+                                    ${actionsHtml}
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                }
+                initChart();
+
+            } catch (error) {
+                console.error("Erro ao carregar Dashboard:", error);
+                if (listTable) {
+                    listTable.innerHTML = `<tr><td colspan="5" class="text-center text-error p-4">
+                        <b>⚠️ Erro ao conectar com a planilha</b><br>
+                        <small>${error.message}</small><br>
+                        <button onclick="loadStats()" class="btn btn-sm btn-secondary mt-2">Tentar Novamente</button>
+                    </td></tr>`;
+                }
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal-details');
+            if (modal) modal.classList.remove('active');
+        }
+
+        // Fecha modal ao clicar fora dele
+        window.onclick = function (event) {
+            const modal = document.getElementById('modal-details');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+
+        async function generateContract(matricula, cursoNome = "") {
+            const loader = document.getElementById('loading');
+            loader.classList.add('active');
+
+            try {
+                // Adicionamos um timestamp para evitar cache do Google
+                const url = `${GOOGLE_API_URL}?type=contrato&matricula=${encodeURIComponent(matricula)}&curso=${encodeURIComponent(cursoNome)}&t=${Date.now()}`;
+                console.log("Solicitando contrato via PDF:", url);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Erro de rede/autorização (Status: ${response.status})`);
+                }
+
+                // O Google Scripts pode retornar texto puro ou JSON. Vamos tratar.
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    throw new Error("O servidor retornou uma resposta inválida. Verifique se o Script está publicado como 'Qualquer Pessoa'.");
+                }
+
+                if (result.pdfUrl) {
+                    // Pequeno delay para garantir que o Driver liberou o arquivo
+                    setTimeout(() => {
+                        window.open(result.pdfUrl, '_blank');
+                    }, 500);
+                } else if (result.error) {
+                    throw new Error(result.error);
+                } else {
+                    throw new Error("Não foi possível obter o link do PDF.");
+                }
+
+            } catch (error) {
+                console.error("Erro detalhado:", error);
+                alert("❌ Erro ao gerar contrato:\n" + error.message + "\n\n1. Verifique se o Script foi publicado como 'Qualquer pessoa'.\n2. Certifique-se de que autorizou as permissões no Editor do Script.");
+            } finally {
+                loader.classList.remove('active');
+            }
+        }
+
+        // --- LOGICA DE APROVACAO E REJEICAO ---
+
+        async function updateStatus(matricula, type, confirmMsg, motivo = "") {
+            if (!confirm(confirmMsg)) return;
+
+            const loader = document.getElementById('loading');
+            loader.classList.add('active');
+
+            try {
+                // type = 'approve' ou 'reject'
+                let url = `${GOOGLE_API_URL}?type=${type}&matricula=${encodeURIComponent(matricula)}&t=${Date.now()}`;
+
+                if (motivo) {
+                    url += `&motivo=${encodeURIComponent(motivo)}`;
+                }
+
+                console.log("Atualizando status:", url);
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("Falha na comunicação com o servidor.");
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ Solicitação ${type === 'approve' ? 'aprovada' : 'rejeitada'} com sucesso!`);
+                    closeModal();
+                    // Delay maior para o Google Processar e evitar erros de consistência
+                    setTimeout(() => {
+                        loadStats();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || "Erro desconhecido.");
+                }
+
+            } catch (error) {
+                console.error("Erro status:", error);
+                alert("⚠️ Atenção: Verifique seu Script Google.\n\nErro: " + error.message);
+            } finally {
+                loader.classList.remove('active');
+            }
+        }
+
+        async function approveSubmission(matricula) {
+            await updateStatus(matricula, 'approve', "Confirmar a APROVAÇÃO desta solicitação?");
+        }
+
+        async function rejectSubmission(matricula) {
+            const motivo = prompt("Por favor, descreva o motivo da rejeição (opcional):");
+            if (motivo === null) return; // Cancelou o prompt
+
+            await updateStatus(matricula, 'reject', "Confirmar a REJEIÇÃO desta solicitação?", motivo);
+        }
+
+        function viewSubmissionDetails(idx) {
+            const s = currentSubmissions[idx];
+            const body = document.getElementById('modal-body');
+            const footer = document.getElementById('modal-footer');
+            const modal = document.getElementById('modal-details');
+
+            if (!s || !body || !modal) return;
+
+            // Mapeamento de todos os campos possíveis usando findVal para evitar erros de colunas
+            const formatDateShort = (raw) => {
+                if (!raw || raw === "-") return "-";
+                // Se já é uma string com formato dd/mm/yyyy, retorna direto
+                if (typeof raw === 'string' && raw.includes('/')) {
+                    return raw.split(' ')[0]; // Remove hora se houver
+                }
+                const d = new Date(raw);
+                if (isNaN(d.getTime())) return raw;
+                return d.toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+            };
+
+            const fields = [
+                { label: "Matrícula", val: findVal(s, ["Matrícula", "Matricula", "Chapa"]) || "-" },
+                { label: "Nome Completo", val: findVal(s, ["Nome", "Nome Completo", "Colaborador"]) || "-" },
+                { label: "Data de Cadastro", val: formatDateShort(findVal(s, ["Data Hora", "Data", "Cadastro", "datahora"])) },
+                { label: "Telefone", val: findVal(s, ["Telefone", "Celular", "WhatsApp"]) || "-" },
+                { label: "E-mail", val: findVal(s, ["Email", "E-mail", "email"]) || "-" },
+                { label: "CPF", val: findVal(s, ["CPF", "C.P.F."]) || "-" },
+                { label: "RG", val: findVal(s, ["RG", "R.G."]) || "-" },
+                { label: "Endereço", val: `${findVal(s, ["Rua", "Endereco"]) || "-"}, ${findVal(s, ["Nº", "Número"]) || "S/N"}` },
+                { label: "Bairro", val: findVal(s, ["Bairro"]) || "-" },
+                { label: "Cidade/UF", val: `${findVal(s, ["Cidade"]) || "-"} - ${findVal(s, ["UF", "Estado"]) || "-"}` },
+                { label: "CEP", val: findVal(s, ["CEP"]) || "-" },
+                { label: "Cargo", val: findVal(s, ["Cargo", "Descrição Cargo"]) || "-" },
+                { label: "Unidade", val: findVal(s, ["Unidade", "Filial"]) || "-" },
+                { label: "Tempo de Empresa", val: findVal(s, ["Tempo", "Tempo de Empresa"]) || "-" },
+                { label: "Curso", val: findVal(s, ["Curso", "Nome do Curso"]) || "-" },
+                { label: "Início do Curso", val: formatDateShort(findVal(s, ["Data Inicio", "Data de Inicio", "Inicio", "datainicio"])) },
+                { label: "Término do Curso", val: formatDateShort(findVal(s, ["Data Termino", "Data de Termino", "Fim", "datatermino"])) },
+            ];
+
+            let html = "";
+            fields.forEach(f => {
+                html += `
+                    <div class="detail-item">
+                        <span class="detail-label">${f.label}</span>
+                        <span class="detail-value">${f.val}</span>
+                    </div>
+                `;
+            });
+
+            // Adiciona o arquivo anexo se existir - Busca robusta por múltiplos nomes de coluna
+            const fileUrl = findVal(s, ["Link Comprovante", "linkcomprovante", "Arquivo", "Link do Arquivo", "Comprovante"])
+                || s["Link Comprovante"] || s["linkcomprovante"] || s["Arquivo"] || null;
+            if (fileUrl && fileUrl !== "-" && String(fileUrl).startsWith("http")) {
+                html += `
+                    <div class="detail-grid full-width">
+                        <div class="attachment-preview">
+                            <span class="detail-label">Comprovante de Matrícula</span>
+                            <div class="mb-4">
+                                <a href="${fileUrl}" target="_blank" class="btn btn-primary mt-3" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
+                                    <i class="fas fa-external-link-alt"></i> Abrir Anexo em Nova Aba
+                                </a>
+                            </div>
+                            <!-- Tentativa de Preview -->
+                            <iframe src="${fileUrl.replace('/view', '/preview')}" width="100%" height="400px" style="border: none; border-radius: 8px; background: white;"></iframe>
+                        </div>
+                    </div>
+                `;
+            } else {
+                html += `
+                <div class="detail-grid full-width" >
+                    <div class="attachment-preview" style="border-color: var(--glass-border); background: transparent;">
+                        <span class="detail-label">Anexo</span>
+                        <p class="text-dim text-xs mt-2 italic">Nenhum arquivo enviado</p>
+                    </div>
+                </div>
+                `;
+            }
+
+            body.innerHTML = html;
+
+            // Adiciona os botões de ação no footer do modal
+            footer.innerHTML = `
+            <div class="flex justify-between items-center w-full" >
+                <div class="flex flex-col">
+                    <p class="text-xs text-dim">ID: ${s["Matrícula"] || s["Matricula"] || "N/A"}</p>
+                </div>
+            <div class="flex items-center gap-2">
+                <button onclick="approveSubmission('${s["Matrícula"] || s["Matricula"]}')" class="btn btn-primary" style="background: var(--success); border-color: var(--success);">
+                    <i class="fas fa-check-circle"></i> Aprovar
+                </button>
+                <button onclick="generateContract('${s["Matrícula"] || s["Matricula"]}', '${s["Curso"] || s["curso"]}')" class="btn btn-primary">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+            </div>
+            </div>`;
+
+            modal.classList.add('active');
+        }
+
+
+        // -- FUNÇÕES DE STEPPER (GLOBAIS) --
+
+        window.nextStep = function (target) {
+            console.log("Chamado nextStep para:", target);
+            if (validateStep(currentStep)) {
+                currentStep = target;
+                updateStepper();
+                window.scrollTo(0, 0);
+            }
+        };
+
+        window.prevStep = function (target) {
+            currentStep = target;
+            updateStepper();
+            window.scrollTo(0, 0);
+        };
+
+        function updateStepper() {
+            const progress = document.getElementById('step-progress');
+            if (currentStep === 1) progress.style.width = '0%';
+            if (currentStep === 2) progress.style.width = '50%';
+            if (currentStep === 3) progress.style.width = '100%';
+
+            for (let i = 1; i <= 3; i++) {
+                const indicator = document.getElementById(`step-${i}-indicator`);
+                const formStep = document.getElementById(`step-${i}`);
+
+                if (indicator && formStep) {
+                    indicator.classList.remove('active', 'completed');
+                    formStep.classList.remove('active');
+
+                    if (i < currentStep) indicator.classList.add('completed');
+                    if (i === currentStep) {
+                        indicator.classList.add('active');
+                        formStep.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        function validateStep(step) {
+            try {
+                if (step === 1) {
+                    const phoneInput = document.getElementById('user-phone');
+                    if (!phoneInput) {
+                        console.error("ERRO CRÍTICO: Campo 'user-phone' não encontrado no DOM.");
+                        alert("Erro interno: Campo de telefone não encontrado. Recarregue a página.");
+                        return false;
+                    }
+                    const emailInput = document.getElementById('user-email');
+                    const phone = phoneInput.value;
+                    const email = emailInput.value;
+
+                    if (!phone || phone.length < 8) {
+                        alert("Por favor, preencha seu WhatsApp.");
+                        return false;
+                    }
+                    if (!email || !email.includes('@')) {
+                        alert("Por favor, preencha um e-mail válido.");
+                        return false;
+                    }
+                    return true;
+                }
+
+                if (step === 2) {
+                    // Validação adaptada para o Select com proteções
+                    const select = document.getElementById('course-select');
+                    const otherInput = document.getElementById('course-name-other');
+                    const startInput = document.getElementById('course-start');
+                    const endInput = document.getElementById('course-end');
+                    const fileInput = document.getElementById('course-files');
+
+                    // Defesa contra elementos inexistentes
+                    if (!select || !otherInput || !startInput || !endInput || !fileInput) {
+                        console.error("ERRO CRÍTICO: Elementos do formulário (Etapa 2) não encontrados.");
+                        alert("Erro interno no formulário. Por favor, recarregue a página (F5).");
+                        return false;
+                    }
+
+                    let curso = select.value;
+                    if (!curso || curso === "" || curso === "Selecione seu curso...") {
+                        // Se não selecionou nada (ou se o value default for vazio)
+                        // Vamos deixar passar para checar embaixo, ou alertar aqui.
+                        // O value da option disabled selected é ""
+                    }
+
+                    if (curso === 'Outros') {
+                        curso = otherInput.value;
+                    }
+
+                    const inicio = startInput.value;
+                    const fim = endInput.value;
+
+                    if (!curso || curso === "" || !inicio || !fim) {
+                        alert("Preencha todos os dados do curso (Nome, Início e Fim).");
+                        return false;
+                    }
+
+                    if (fileInput.files.length === 0) {
+                        alert("O anexo do comprovante é obrigatório.");
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                return true;
+            } catch (error) {
+                console.error("Erro na validação da etapa:", error);
+                alert("Ocorreu um erro ao validar os dados. Tente novamente.");
+                return false;
+            }
+        }
+
+        let myChartInstance = null;
+        function initChart() {
+            const ctx = document.getElementById('adminChart');
+            if (ctx && window.Chart) {
+                if (myChartInstance) {
+                    myChartInstance.destroy();
+                }
+                myChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Inscritos'],
+                        datasets: [{
+                            label: 'Total',
+                            data: [currentSubmissions.length || 0],
+                            backgroundColor: '#6366f1'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Função helper para loading
+        function showLoading(show) {
+            const loader = document.getElementById('loading');
+            if (show) loader.classList.add('active');
+            else loader.classList.remove('active');
+        }
+
+        // Enviar Notificação Manual via Admin
+        async function sendManualNotification(matricula, nome) {
+            const mensagem = prompt(`Digite a mensagem personalizada para ${nome}:`, "Olá! Precisamos falar sobre sua solicitação de incentivo à educação.");
+            if (mensagem === null) return; // Cancelado
+
+            showLoading(true);
+            try {
+                // Usa no-cors para evitar bloqueio de CORS do Google
+                await fetch(GOOGLE_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        command: 'notificar_manual',
+                        matricula: matricula,
+                        mensagem: mensagem
+                    })
+                });
+                // Com no-cors não podemos ler a resposta, mas o email é enviado pelo servidor
+                alert(`✅ Notificação enviada para ${nome}!\nO e-mail será processado em instantes.`);
+            } catch (e) {
+                console.error('Erro notificação:', e);
+                alert("⚠️ Erro ao enviar: " + e.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        console.log("Scripts carregados com sucesso.");
+    </script>
+</body>
+
+</html>

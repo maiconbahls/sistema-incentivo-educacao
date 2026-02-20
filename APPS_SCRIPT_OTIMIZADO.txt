@@ -1,0 +1,469 @@
+/**
+ * VERSÃO TITANIUM V5 - ARRAY FIXO
+ * Se type=version retornar 'V5', o deploy está correto.
+ * Autor: Antigravity AI
+ */
+const SCRIPT_VERSION = "V5-ARRAY-FIXO";
+
+// --- FORÇAR RECONHECIMENTO DE ESCOPOS (NÃO APAGUE) ---
+// DocumentApp.getActiveDocument(); 
+// DriveApp.getRootFolder();
+// SpreadsheetApp.getActiveSpreadsheet();
+
+// --- CONFIGURAÇÃO ---
+const TEMPLATE_ID = '12a9cxs0G8YuNV46sOW5TsYI3j9l7-F8cIorjxiQdrY4';
+const EXPECTED_HEADERS = ["Data Hora", "Matrícula", "Nome", "RG", "CPF", "Rua", "Nº", "Bairro", "Cidade", "UF", "CEP", "Cargo", "Unidade", "Tempo", "Telefone", "Email", "Curso", "Data Inicio", "Data Termino", "Link Comprovante", "Status", "Motivo Rejeição"];
+
+// --- CONFIGURAÇÃO DA PLANILHA ---
+function getSheet() {
+  const doc = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = doc.getSheetByName("RESPOSTAS");
+  
+  if (!sheet) {
+    sheet = doc.insertSheet("RESPOSTAS");
+    sheet.appendRow(expectedHeaders);
+    sheet.getRange(1, 1, 1, expectedHeaders.length).setFontWeight("bold").setBackground("#d9d9d9");
+  } else {
+    // REPARO DE CABEÇALHOS
+    const lastCol = sheet.getLastColumn();
+    let currentHeaders = [];
+    if (lastCol > 0) {
+      currentHeaders = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    }
+
+    // Se estiver vazia ou faltar a coluna crítica "Matrícula", reconstrói
+    if (currentHeaders.length === 0 || !currentHeaders.includes("Matrícula") || currentHeaders.every(h => h === "")) {
+      sheet.getRange(1, 1, 1, EXPECTED_HEADERS.length).setValues([EXPECTED_HEADERS]);
+      sheet.getRange(1, 1, 1, EXPECTED_HEADERS.length).setFontWeight("bold").setBackground("#d9d9d9");
+      sheet.setFrozenRows(1); // Congela a primeira linha
+    } else if (!currentHeaders.includes("Motivo Rejeição")) {
+      // Se tiver dados mas faltar apenas a coluna de motivo, adiciona ao fim
+      sheet.getRange(1, lastCol + 1).setValue("Motivo Rejeição").setFontWeight("bold").setBackground("#d9d9d9");
+    }
+  }
+  return sheet;
+}
+
+// --- FUNÇÃO GET (Leitura) ---
+function doGet(e) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(10000);
+
+  try {
+    const type = e.parameter.type;
+
+    // 0. TESTE DE VERSÃO
+    if (type === 'version') {
+      return ContentService.createTextOutput(JSON.stringify({version: SCRIPT_VERSION, timestamp: new Date().toISOString()}))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 1. MODO RESPOSTAS (Dashboard)
+    if (type === 'respostas') {
+      const sheet = getSheet();
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const rows = data.slice(1);
+
+      // Mapeia array de arrays para array de objetos JSON usando os cabeçalhos
+      const result = rows.map(row => {
+        let obj = {};
+        headers.forEach((h, i) => {
+          const key = String(h).trim();
+          obj[key] = row[i];
+          // Cria uma chave "facilitada" para o frontend (ex: 'Data Inicio' vira 'datainicio')
+          const simplifiedKey = key.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+          obj[simplifiedKey] = row[i];
+        });
+        return obj;
+      });
+
+      return ContentService.createTextOutput(JSON.stringify(result))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. MODO BUSCA COLABORADOR (Login)
+    if (!type || type === 'colaborador') {
+       // ... Lógica existente de busca ...
+       // (Mantenha a lógica de ler a aba BASE ou BD aqui se necessário)
+       // Para simplificar, vou focar nas mudanças solicitadas
+       return buscarColaborador(e); 
+    }
+
+    // 3. MODO APROVAR
+    if (type === 'approve' && e.parameter.matricula) {
+      return aprovarSolicitacao(e.parameter.matricula);
+    }
+
+    // 4. MODO REJEITAR
+    if (type === 'reject' && e.parameter.matricula) {
+      return rejeitarSolicitacao(e.parameter.matricula, e.parameter.motivo);
+    }
+    
+    // 5. MODO CONTRATO (PDF)
+    if (type === 'contrato') {
+      return gerarContratoPDF(e);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({error: "Comando inválido."}))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({error: err.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// --- FUNÇÃO POST (Salvar Dados e Comandos) ---
+function doPost(e) {
+  const lock = LockService.getScriptLock();
+  lock.tryLock(5000);
+
+  try {
+    const d = JSON.parse(e.postData.contents);
+    const sheet = getSheet();
+
+    // COMANDO: Notificação Manual
+    if (d.command === "notificar_manual") {
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0];
+      const matColIdx = headers.findIndex(h => h === "Matrícula" || h === "Matricula");
+      const emailColIdx = headers.findIndex(h => h === "Email");
+      const nomeColIdx = headers.findIndex(h => h === "Nome");
+
+      const row = data.find(r => String(r[matColIdx]).replace("'","") == d.matricula);
+      if (row && row[emailColIdx]) {
+        const msgPersonalizada = d.mensagem || "Este é um lembrete do RH sobre sua solicitação no Programa de Incentivo à Educação.";
+        
+        MailApp.sendEmail({
+          to: row[emailColIdx],
+          subject: "🔔 Mensagem do RH: Programa de Incentivo à Educação",
+          htmlBody: `
+            <div style="font-family: sans-serif; padding: 20px; color: #333; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #6366f1;">Olá, ${row[nomeColIdx]}!</h2>
+              <p style="font-size: 16px; line-height: 1.6;">${msgPersonalizada}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+              <p>Acesse o portal para mais detalhes:</p>
+              <a href="${ScriptApp.getService().getUrl()}" style="background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">Acessar Portal</a>
+              <br><br>
+              <p style="font-size: 12px; color: #999;">Atenciosamente,<br><b>Equipe de Recursos Humanos</b></p>
+            </div>
+          `
+        });
+        return ContentService.createTextOutput(JSON.stringify({ success: true })).setMimeType(ContentService.MimeType.JSON);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ error: "Colaborador ou E-mail não encontrado." })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Upload Arquivo
+    let fileUrl = "-";
+    try {
+      if (d.file && d.fileName) {
+        const folderName = "Comprovantes_Incentivo";
+        const folders = DriveApp.getFoldersByName(folderName);
+        let folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+        
+        // CORREÇÃO: Limpa o prefixo Data URL se existir
+        let base64Data = d.file;
+        if (base64Data.includes(",")) {
+          base64Data = base64Data.split(",")[1];
+        }
+        
+        const fileBlob = Utilities.newBlob(Utilities.base64Decode(base64Data), MimeType.PDF, d.fileName);
+        const file = folder.createFile(fileBlob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        fileUrl = file.getUrl(); 
+      }
+    } catch (errUpload) {
+      console.error("Erro upload:", errUpload);
+      fileUrl = "Erro no Upload: " + errUpload.toString();
+    }
+
+    // Verifica se os headers precisam ser atualizados (só escreve se necessário)
+    let currentHeaders = [];
+    try {
+      if (sheet.getLastColumn() > 0) {
+        currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      }
+    } catch(e) {}
+    
+    if (currentHeaders.length !== EXPECTED_HEADERS.length || String(currentHeaders[0]).trim() !== EXPECTED_HEADERS[0]) {
+      sheet.getRange(1, 1, 1, EXPECTED_HEADERS.length).setValues([EXPECTED_HEADERS]);
+      sheet.getRange(1, 1, 1, EXPECTED_HEADERS.length).setFontWeight("bold").setBackground("#d9d9d9");
+      sheet.setFrozenRows(1);
+    }
+
+    const dataHora = Utilities.formatDate(new Date(), "GMT-3", "dd/MM/yyyy HH:mm:ss");
+    
+    // ABORDAGEM POR POSIÇÃO FIXA - USA O ÍNDICE DO ARRAY EXPECTED_HEADERS
+    // Ordem: 0=Data Hora, 1=Matrícula, 2=Nome, 3=RG, 4=CPF, 5=Rua, 6=Nº, 
+    //         7=Bairro, 8=Cidade, 9=UF, 10=CEP, 11=Cargo, 12=Unidade, 13=Tempo,
+    //         14=Telefone, 15=Email, 16=Curso, 17=Data Inicio, 18=Data Termino,
+    //         19=Link Comprovante, 20=Status, 21=Motivo Rejeição
+    let finalRow = [
+      dataHora,                        // 0  - Data Hora
+      "'" + (d.matricula || ""),        // 1  - Matrícula
+      d.nome || "",                     // 2  - Nome
+      d.rg || "",                       // 3  - RG
+      d.cpf || "",                      // 4  - CPF
+      d.rua || "",                      // 5  - Rua
+      d.numero || "",                   // 6  - Nº
+      d.bairro || "",                   // 7  - Bairro
+      d.cidade || "",                   // 8  - Cidade
+      d.uf || "",                       // 9  - UF
+      d.cep || "",                      // 10 - CEP
+      d.cargo || "",                    // 11 - Cargo
+      d.unidade || "",                  // 12 - Unidade
+      d.tempo || "",                    // 13 - Tempo
+      d.telefone || "",                 // 14 - Telefone
+      d.email || "",                    // 15 - Email
+      d.curso || "",                    // 16 - Curso
+      d.datainicio || "",               // 17 - Data Inicio
+      d.datafim || "",                  // 18 - Data Termino
+      fileUrl || "",                    // 19 - Link Comprovante
+      "Pendente",                       // 20 - Status
+      ""                                // 21 - Motivo Rejeição
+    ];
+
+    sheet.appendRow(finalRow);
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true, row: sheet.getLastRow() }))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// --- FUNÇÕES AUXILIARES ---
+function setStatus(matricula, novoStatus, motivo = "") {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0]; 
+  
+  let statusColIndex = headers.findIndex(h => h === "Status");
+  let motivoColIndex = headers.findIndex(h => h === "Motivo Rejeição");
+
+  // Procura Matricula (pode estar na col B ou headers chamados Matricula)
+  let matColIndex = headers.findIndex(h => h === "Matrícula" || h === "Matricula");
+  if (matColIndex === -1) matColIndex = 1; // Fallback para col B
+
+  const rowIndex = data.findIndex((r, i) => i > 0 && String(r[matColIndex]).replace("'","") == matricula);
+
+  if (rowIndex === -1) return json({error: "Matrícula não encontrada."});
+  
+  const rowData = data[rowIndex];
+  const emailColIndex = headers.indexOf("Email");
+  const nomeColIndex = headers.indexOf("Nome");
+  
+  const userEmail = emailColIndex !== -1 ? rowData[emailColIndex] : "";
+  const userName = nomeColIndex !== -1 ? rowData[nomeColIndex] : "Colaborador";
+
+  sheet.getRange(rowIndex + 1, statusColIndex + 1).setValue(novoStatus);
+  if (motivoColIndex !== -1 && novoStatus === "Rejeitado") {
+    sheet.getRange(rowIndex + 1, motivoColIndex + 1).setValue(motivo);
+  }
+
+  // --- ENVIO DE E-MAIL DE NOTIFICAÇÃO ---
+  if (userEmail && userEmail.includes("@")) {
+    try {
+      let subject = novoStatus === "Aprovado" ? "✅ Solicitação Aprovada! - Incentivo à Educação" : "⚠️ Atualização na sua Solicitação - Incentivo à Educação";
+      let bodyHtml = `
+        <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+          <h2 style="color: ${novoStatus === "Aprovado" ? "#10b981" : "#ef4444"};">Olá, ${userName}!</h2>
+          <p>Temos uma atualização sobre o seu pedido de incentivo à educação.</p>
+          <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 5px solid ${novoStatus === "Aprovado" ? "#10b981" : "#ef4444"};">
+            <b>Status Atual:</b> ${novoStatus.toUpperCase()}
+            ${motivo ? `<br><br><b>Motivo:</b> ${motivo}` : ""}
+          </div>
+          <p>${novoStatus === "Aprovado" ? "Parabéns! Sua solicitação foi aprovada. Acesse o portal para baixar seu contrato PDF." : "Infelizmente sua solicitação não foi aprovada desta vez. Acesse o portal para mais detalhes ou entre em contato com o RH."}</p>
+          <br>
+          <a href="${ScriptApp.getService().getUrl()}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar Portal</a>
+          <br><br>
+          <hr style="border: none; border-top: 1px solid #eee;">
+          <small style="color: #888;">Este é um e-mail automático enviado pelo Sistema de Incentivo à Educação.</small>
+        </div>
+      `;
+      
+      MailApp.sendEmail({
+        to: userEmail,
+        subject: subject,
+        htmlBody: bodyHtml
+      });
+    } catch (e) {
+      console.error("Erro ao enviar e-mail de notificação: " + e.toString());
+    }
+  }
+  
+  return json({success: true, message: "Status atualizado para " + novoStatus});
+}
+
+function aprovarSolicitacao(matched) { return setStatus(matched, "Aprovado"); }
+function rejeitarSolicitacao(matched, motivo) { return setStatus(matched, "Rejeitado", motivo); }
+
+// Mantenha buscarColaborador e gerarContratoPDF originais ou atualizados conforme necessário para seu contexto
+// (Vou incluir placeholders essenciais para não quebrar)
+function buscarColaborador(e) {
+    const doc = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetBase = doc.getSheetByName("BASE") || doc.getSheetByName("SELECT");
+    if (!sheetBase) return json({error: "Aba BASE/SELECT não encontrada"});
+    
+    const target = String(e.parameter.matricula).trim().replace(/^0+/, '');
+    
+    // 1. Busca na Base Principal
+    const dataBase = sheetBase.getDataRange().getValues();
+    const headersBase = dataBase[0].map(h => String(h).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim());
+    const colIdxBase = headersBase.findIndex(h => h.includes('matricu') || h.includes('chapa') || h.includes('registro'));
+    
+    if (colIdxBase === -1) return json({error: "Coluna de matrícula não encontrada na base."});
+    
+    const rowBase = dataBase.slice(1).find(r => String(r[colIdxBase]).trim().replace(/^0+/, '') === target);
+    if (!rowBase) return json({error: "Matrícula não encontrada na base principal."});
+    
+    let result = {}; 
+    headersBase.forEach((h, i) => result[h] = rowBase[i]);
+
+    // 2. Verifica se já existe na aba RESPOSTAS
+    const sheetResp = doc.getSheetByName("RESPOSTAS");
+    if (sheetResp) {
+      const dataResp = sheetResp.getDataRange().getValues();
+      const headersResp = dataResp[0];
+      const matColIdx = headersResp.findIndex(h => h === "Matrícula" || h === "Matricula");
+      const statusColIdx = headersResp.findIndex(h => h === "Status");
+      const motivoColIdx = headersResp.findIndex(h => h === "Motivo Rejeição");
+      
+          const emailColIdx = headersResp.findIndex(h => h === "Email" || h === "E-mail");
+
+          if (matColIdx !== -1) {
+            const rowResp = dataResp.slice(1).find(r => String(r[matColIdx]).replace("'","").trim().replace(/^0+/, '') === target);
+            if (rowResp) {
+              result.alreadySubmitted = true;
+              result.submissionStatus = rowResp[statusColIdx] || "Pendente";
+              result.submissionDate = rowResp[0]; // Data Hora
+              if (emailColIdx !== -1) result.email = rowResp[emailColIdx] || "";
+              if (motivoColIdx !== -1) {
+                result.motivoRejeicao = rowResp[motivoColIdx] || "";
+              }
+            }
+          }
+    }
+
+    return json(result);
+}
+
+function gerarContratoPDF(e) {
+  try {
+    const colabResponse = buscarColaborador(e);
+    const colab = JSON.parse(colabResponse.getContent());
+    if (colab.error) throw new Error(colab.error);
+
+    const getVal = (v) => {
+      const key = Object.keys(colab).find(k => k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes(v.toLowerCase()));
+      return key ? colab[key] : "";
+    };
+
+    const tags = {
+      "{{NOME}}": getVal('nome') || getVal('colaborador'),
+      "{{MATRICULA}}": e.parameter.matricula,
+      "{{RG}}": getVal('rg'),
+      "{{CPF}}": getVal('cpf'),
+      "{{RUA}}": getVal('rua') || getVal('endereco') || getVal('logradouro'),
+      "{{NUMERO}}": getVal('numero') || getVal('n') || getVal('num'),
+      "{{BAIRRO}}": getVal('bairro'),
+      "{{CIDADE}}": getVal('cidade'),
+      "{{UF}}": getVal('uf') || getVal('estado'),
+      "{{CEP}}": getVal('cep'),
+      "{{CURSO}}": getVal('curso') || "Incentivo Educacional",
+      "{{DATA_EXTENSO}}": Utilities.formatDate(new Date(), "GMT-3", "dd 'de' MMMM 'de' yyyy")
+    };
+
+    const template = DriveApp.getFileById(TEMPLATE_ID);
+    const folder = DriveApp.getFoldersByName("CONTRATOS_GERADOS").hasNext() ? DriveApp.getFoldersByName("CONTRATOS_GERADOS").next() : DriveApp.createFolder("CONTRATOS_GERADOS");
+    
+    const copy = template.makeCopy(`CONTRATO - ${tags["{{MATRICULA}}"]} - ${tags["{{NOME}}"]}`, folder);
+    const docCopy = DocumentApp.openById(copy.getId());
+    const body = docCopy.getBody();
+
+    for (let tag in tags) {
+      body.replaceText(tag, String(tags[tag] || "__________"));
+    }
+    docCopy.saveAndClose();
+
+    const pdf = copy.getAs(MimeType.PDF);
+    const pdfFile = folder.createFile(pdf);
+    pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    // Opcional: remover cópia doc temporária
+    // copy.setTrashed(true);
+
+    return json({ pdfUrl: pdfFile.getUrl() });
+  } catch (err) { 
+    return json({ error: "Erro ao criar PDF: " + err.toString() }); 
+  }
+}
+
+
+
+// --- FUNÇÃO DE AUTOMAÇÃO DE E-MAIL (Rodar Diariamente via Gatilho) ---
+function enviarLembretesRenovacao() {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1);
+
+  const idxEmail = headers.indexOf("Email");
+  const idxNome = headers.indexOf("Nome");
+  const idxStatus = headers.indexOf("Status");
+  const idxData = headers.indexOf("Data Hora");
+
+  if (idxEmail === -1) return;
+
+  const hoje = new Date();
+  let envios = 0;
+
+  rows.forEach(row => {
+    const status = row[idxStatus];
+    const dataEnvio = new Date(row[idxData]);
+    const email = row[idxEmail];
+    const nome = row[idxNome];
+
+    if (status === "Aprovado" && email && email.includes("@")) {
+      const diffDias = Math.floor((hoje - dataEnvio) / (1000 * 60 * 60 * 24));
+      
+      // Envia exatamente aos 90 dias
+      if (diffDias === 90) {
+        try {
+          MailApp.sendEmail({
+            to: email,
+            subject: "⚠️ Renovação Necessária - Incentivo à Educação ETEC",
+            htmlBody: `
+              <div style="font-family: sans-serif; color: #333;">
+                <h2>Olá, ${nome}!</h2>
+                <p>Identificamos que sua última declaração de matrícula foi enviada há exatamente <b>3 meses</b>.</p>
+                <p>Para manter seu benefício de incentivo à educação, é necessário enviar uma declaração atualizada.</p>
+                <p>Acesse o portal agora para realizar o novo envio:</p>
+                <a href="${ScriptApp.getService().getUrl()}" style="background: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Acessar Portal</a>
+                <br><br>
+                <small>Caso já tenha enviado recentemente, desconsidere este e-mail.</small>
+              </div>
+            `
+          });
+          envios++;
+        } catch (e) {
+          console.error("Erro ao enviar e-mail para " + email, e);
+        }
+      }
+    }
+  });
+
+  return "Lembretes enviados: " + envios;
+}
+
+function json(obj) { 
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); 
+}

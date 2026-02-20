@@ -957,7 +957,7 @@
 
     <script>
         // Script iniciado com sucesso
-        console.log("Aplicação Iniciada [v2.1 Turbo]");
+        // console.log("Aplicação Iniciada [v2.1 Turbo]");
 
         // -- INTEGRAÇÃO COM EXCEL (SELECT.xlsx) --
 
@@ -981,7 +981,7 @@
                 const timeoutId = setTimeout(() => controller.abort(), 20000);
 
                 const url = `${GOOGLE_API_URL}?matricula=${encodeURIComponent(matricula)}&no-cache=${Date.now()}`;
-                console.log("Conectando:", url);
+                // console.log("Conectando:", url);
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -1395,7 +1395,7 @@
             if (listTable) listTable.innerHTML = '<tr><td colspan="4" class="text-center p-4">Carregando dados da planilha... <i class="fas fa-spinner fa-spin ml-2"></i></td></tr>';
 
             try {
-                console.log("Iniciando busca de estatísticas...");
+                // console.log("Iniciando busca de estatísticas...");
                 const response = await fetch(`${GOOGLE_API_URL}?type=respostas&t=${Date.now()}`);
 
                 if (!response.ok) throw new Error("Ops! O Google Scripts demorou a responder. Tente recarregar (F5).");
@@ -1536,7 +1536,7 @@
             try {
                 // Adicionamos um timestamp para evitar cache do Google
                 const url = `${GOOGLE_API_URL}?type=contrato&matricula=${encodeURIComponent(matricula)}&curso=${encodeURIComponent(cursoNome)}&t=${Date.now()}`;
-                console.log("Solicitando contrato via PDF:", url);
+                // console.log("Solicitando contrato via PDF:", url);
 
                 const response = await fetch(url);
 
@@ -1588,7 +1588,7 @@
                     url += `&motivo=${encodeURIComponent(motivo)}`;
                 }
 
-                console.log("Atualizando status:", url);
+                // console.log("Atualizando status:", url);
 
                 const response = await fetch(url);
                 if (!response.ok) throw new Error("Falha na comunicação com o servidor.");
@@ -1904,7 +1904,7 @@
             }
         }
 
-        console.log("Scripts carregados com sucesso.");
+        // console.log("Scripts carregados com sucesso.");
     </script>
 </body>
 

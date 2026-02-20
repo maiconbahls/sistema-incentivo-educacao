@@ -49,4 +49,4 @@ const Storage = {
 };
 
 window.AppStorage = Storage;
-console.log("Storage Service pronto.");
+// console.log("Storage Service pronto.");
